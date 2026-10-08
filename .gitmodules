@@ -1,0 +1,3 @@
+[submodule "external_dependencies/LIBERO"]
+	path = external_dependencies/LIBERO
+	url = https://github.com/3dgnd-head-injection/LIBERO.git
