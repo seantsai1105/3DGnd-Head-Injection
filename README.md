@@ -11,27 +11,14 @@ Yi-Ting Chen<sup>2</sup>, Min Sun<sup>1</sup>
 
 ## Contents
 
-- [Repository layout](#repository-layout)
 - [Installation](#installation)
+- [Repository layout](#repository-layout)
 - [Data preparation](#data-preparation)
 - [Training](#training)
 - [Evaluation](#evaluation)
 - [Troubleshooting](#troubleshooting)
 - [Acknowledgements and license](#acknowledgements-and-license)
 - [Citation](#citation)
-
-## Repository layout
-
-```text
-gr00t/                         GR00T N1.6 package with the grounding modality
-  data/ model/ policy/         grounding input: loading, normalization, encoder, policy
-  eval/run_gr00t_server.py     policy server
-  eval/rollout_policy.py       rollouts of one LIBERO / LIBERO-PRO task
-  eval/sim/LIBERO/             3DGnd LIBERO environment, setup_libero.sh, client requirements
-examples/LIBERO/               modality config, fine-tuning and evaluation scripts
-scripts/data_preparation/      regeneration of the training data
-external_dependencies/LIBERO/  git submodule: our LIBERO fork with the 3DGnd changes and LIBERO-PRO
-```
 
 ## Installation
 
@@ -40,11 +27,11 @@ git clone --recurse-submodules https://github.com/seantsai1105/3DGnd-Head-Inject
 cd 3DGnd-Head-Injection
 ```
 
-All commands run from the repository root. We tested the release on Ubuntu 22.04 with NVIDIA RTX
-A6000 GPUs. The model and the LIBERO simulator need different package versions, so they live in two
-environments: the GR00T environment (training and policy server) and the LIBERO client
-environment (evaluation rollouts). Regenerating the training data is optional and uses a third
-environment, described in the [data preparation README](scripts/data_preparation/README.md#setup).
+All commands run from the repository root. The model and the LIBERO simulator need different
+package versions, so they live in two environments: the GR00T environment (training and policy
+server) and the LIBERO client environment (evaluation rollouts). Regenerating the training data is
+optional and uses a third environment, described in the
+[data preparation README](scripts/data_preparation/README.md#setup).
 
 ### GR00T environment
 
@@ -73,14 +60,37 @@ LIBERO config `gr00t/eval/sim/LIBERO/libero_config/` and builds the client venv
 `gr00t/eval/sim/LIBERO/requirements-eval.txt`. Rendering is headless (EGL), so no X server is
 needed.
 
+## Repository layout
+
+```text
+gr00t/                         GR00T N1.6 package with the grounding modality
+  data/ model/ policy/         grounding input: loading, normalization, encoder, policy
+  eval/run_gr00t_server.py     policy server
+  eval/rollout_policy.py       rollouts of one LIBERO / LIBERO-PRO task
+  eval/sim/LIBERO/             3DGnd LIBERO environment, setup_libero.sh, client requirements
+examples/LIBERO/               modality config, fine-tuning and evaluation scripts
+scripts/data_preparation/      regeneration of the training data
+external_dependencies/LIBERO/  git submodule: our LIBERO fork with the 3DGnd changes and LIBERO-PRO
+```
+
 ## Data preparation
 
 The training data are built from the LIBERO demonstrations of 69 pick-and-place tasks (49 from
-LIBERO-90, 10 from LIBERO-Object, 10 from LIBERO-Spatial), replayed in our LIBERO fork to record
-the grounding target in every frame. The
-[data preparation README](scripts/data_preparation/README.md) describes the setup, the dataset
-format and the three steps (replay, conversion to LeRobot v3.0, conversion to LeRobot v2.1). The
-result, `data/libero_pick_and_place_3dgnd`, is the training dataset.
+LIBERO-90, 10 from LIBERO-Object, 10 from LIBERO-Spatial; listed in
+[`libero_pick_and_place_tasks.txt`](scripts/data_preparation/libero_pick_and_place_tasks.txt)),
+replayed in our LIBERO fork to record the grounding target in every frame.
+
+The [data preparation README](scripts/data_preparation/README.md) has the setup (LIBERO fork,
+data environment, NVIDIA EGL rendering, 48 GB of raw LIBERO demonstrations from Hugging Face), the
+dataset format and the commands of the three steps:
+
+1. `regenerate_libero_dataset_pick_and_place.py` replays the demonstrations and writes one HDF5 file
+   per task (can be split over several processes with `--tasks`).
+2. `convert_libero_to_lerobot.py` converts the HDF5 files to a LeRobot v3.0 dataset.
+3. `convert_v3_to_v2.py` converts it to LeRobot v2.1, the format GR00T reads; then `modality.json`
+   is copied into its `meta/` directory.
+
+The result, `data/libero_pick_and_place_3dgnd`, is the training dataset.
 
 ## Training
 
@@ -93,17 +103,13 @@ DATASET_PATH=data/libero_pick_and_place_3dgnd uv run bash examples/LIBERO/finetu
 modality config [`libero_3dgnd_config.py`](examples/LIBERO/libero_3dgnd_config.py) and the
 embodiment tag `NEW_EMBODIMENT`, using the hyper-parameters of the paper checkpoint: 2 GPUs x 192
 samples (batch size 384), 20k steps, AdamW with learning rate 1e-4, cosine schedule with 5% warmup,
-weight decay 1e-5 and color-jitter augmentation. A checkpoint is written every 1,000 steps to
-`OUTPUT_DIR` (default `outputs/libero_3dgnd`); the paper evaluates `checkpoint-20000`. The script's
-header lists its other settings (`NUM_GPUS`, `GRAD_ACCUM`, `BASE_MODEL_PATH`, ...).
+weight decay 1e-5 and color-jitter augmentation.
 
 ## Evaluation
 
 The GR00T-N1.6 + 3DGnd checkpoint of the paper will be released at CHECKPOINT_URL_TBD; the commands
-below assume it in `checkpoints/3dgnd_libero` (a checkpoint from [Training](#training), e.g.
-`outputs/libero_3dgnd/checkpoint-20000`, works the same way). The evaluation uses GR00T's
-server-client setup: the policy runs in the GR00T environment, the simulators in the LIBERO client
-environment.
+below assume it in `checkpoints/3dgnd_libero`. The evaluation uses GR00T's server-client setup: the
+policy runs in the GR00T environment, the simulators in the LIBERO client environment.
 
 1. Start the policy server (GR00T environment):
 
@@ -132,13 +138,6 @@ Protocol (Table 1 of the paper):
 - Object placements are re-sampled at every reset and are not seeded, so every run sees different
   initial states and the success rates differ slightly between runs (the standard error is up to
   about 2 points per suite).
-
-Success rates (%) of the paper (GR00T-N1.6 fine-tuned on the same data with and without 3DGnd):
-
-| Method | LIBERO<br>Object | LIBERO<br>Spatial | Task pert.<br>Object | Task pert.<br>Spatial | Position pert.<br>Object | Position pert.<br>Spatial |
-|---|:-:|:-:|:-:|:-:|:-:|:-:|
-| GR00T-N1.6 | 93.8 | 93.2 | 10.0 | 52.4 | 29.2 | 27.0 |
-| GR00T-N1.6 + Ours | 99.6 | 92.4 | 70.4 | 84.6 | 79.4 | 41.0 |
 
 Notes on the evaluation script (`--help` lists all settings, `--dry-run` lists the 60 tasks):
 
@@ -221,10 +220,11 @@ Third-party components keep their licenses:
 
 ```bibtex
 @inproceedings{tsai2026direct,
-  title     = {Direct Action-Head Injection of A Grounded {3D} Point Unlocks Spatial and Task Generalization},
-  author    = {Tsai, Shiang-Feng and Jhang, Jin-Cheng and Tai, Yen-Ling and Lai, Jia-Hong and Wong, Shih-Yun and Hsu, Kang-Tung and Chen, Yi-Ting and Sun, Min},
-  booktitle = {Conference on Robot Learning (CoRL)},
-  year      = {2026}
+  title={Direct Action-Head Injection of A Grounded 3D Point Unlocks Spatial and Task Generalization},
+  author={Shiang-Feng Tsai and Jin-Cheng Jhang and Yen-Ling Tai and Jia-Hong Lai and Shih-Yun Wong and Kang-Tung Hsu and Yi-Ting Chen and Min Sun},
+  booktitle={10th Annual Conference on Robot Learning},
+  year={2026},
+  url={https://openreview.net/forum?id=14GtmKGuCf}
 }
 ```
 
