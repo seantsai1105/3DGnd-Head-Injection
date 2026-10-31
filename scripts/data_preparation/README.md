@@ -25,6 +25,10 @@ data therefore contains 68 tasks: 3,092 episodes, 425,471 frames and 63 distinct
 | `action` | 7 | raw LIBERO action |
 | `task` | – | instruction from the task's BDDL file |
 
+`modality.json` (step 4 below) maps these columns to the GR00T modalities: `observation.grounding`
+to `grounding.target_delta`, `observation.state` to the state keys `x`, `y`, `z`, `roll`, `pitch`,
+`yaw`, `gripper`, and `action` to the action keys of the same names.
+
 p_target is the placement target in every frame in which `grasped()` of our LIBERO fork reports the
 object to pick more than 1 cm above its reference height (its height in the 12th frame), and the
 object to pick in all other frames. It is the innermost visible pixel of the target's segmentation
