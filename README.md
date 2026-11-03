@@ -15,6 +15,7 @@ Yi-Ting Chen<sup>2</sup>, Min Sun<sup>1</sup>
 - [Repository layout](#repository-layout)
 - [Data preparation](#data-preparation)
 - [Training](#training)
+- [Checkpoint](#checkpoint)
 - [Evaluation](#evaluation)
 - [Troubleshooting](#troubleshooting)
 - [Acknowledgements and license](#acknowledgements-and-license)
@@ -105,7 +106,7 @@ embodiment tag `NEW_EMBODIMENT`, using the hyper-parameters of the paper checkpo
 samples (batch size 384), 20k steps, AdamW with learning rate 1e-4, cosine schedule with 5% warmup,
 weight decay 1e-5 and color-jitter augmentation.
 
-## Evaluation
+## Checkpoint
 
 The GR00T-N1.6 + 3DGnd checkpoint of the paper is on Hugging Face:
 [k22708038/GR00T-N1.6-3DGnd-LIBERO](https://huggingface.co/k22708038/GR00T-N1.6-3DGnd-LIBERO).
@@ -114,7 +115,10 @@ The GR00T-N1.6 + 3DGnd checkpoint of the paper is on Hugging Face:
 uv run hf download k22708038/GR00T-N1.6-3DGnd-LIBERO --local-dir checkpoints/3dgnd_libero
 ```
 
-The evaluation uses GR00T's server-client setup: the policy runs in the GR00T environment, the
+## Evaluation
+
+The commands below evaluate the [checkpoint](#checkpoint) in `checkpoints/3dgnd_libero`. The
+evaluation uses GR00T's server-client setup: the policy runs in the GR00T environment, the
 simulators in the LIBERO client environment.
 
 1. Start the policy server (GR00T environment):
