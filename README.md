@@ -107,9 +107,15 @@ weight decay 1e-5 and color-jitter augmentation.
 
 ## Evaluation
 
-The GR00T-N1.6 + 3DGnd checkpoint of the paper will be released at CHECKPOINT_URL_TBD; the commands
-below assume it in `checkpoints/3dgnd_libero`. The evaluation uses GR00T's server-client setup: the
-policy runs in the GR00T environment, the simulators in the LIBERO client environment.
+The GR00T-N1.6 + 3DGnd checkpoint of the paper is on Hugging Face:
+[k22708038/GR00T-N1.6-3DGnd-LIBERO](https://huggingface.co/k22708038/GR00T-N1.6-3DGnd-LIBERO).
+
+```bash
+uv run hf download k22708038/GR00T-N1.6-3DGnd-LIBERO --local-dir checkpoints/3dgnd_libero
+```
+
+The evaluation uses GR00T's server-client setup: the policy runs in the GR00T environment, the
+simulators in the LIBERO client environment.
 
 1. Start the policy server (GR00T environment):
 
